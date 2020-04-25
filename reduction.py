@@ -261,14 +261,31 @@ def pf_tot(pf):
 
 	return pf_cont
 
+# statistic quantities
+def stats_var(data):
+	#
+	xmin = min(data)
+	xmax = max(data)
+	xptp = np.ptp(data)              # value range (peak to peak)
+	xmean = np.mean(data)
+	xvar = np.var(data, ddof=1)      # sample variance = sum((x-xmean)^2)/(n-1)
+	xstd = np.std(data, ddof=1)
+	xmid = np.median(data)
+
+	return xmin, xmax, xptp, xmean, xvar, xstd, xmid  
+
+
+
 
 if __name__ == '__main__':
 	#
 	load_file = "load.dat"
+	stat_file = "stat.dat"
 	prob_file = "fail_prob.dat"
 	load_dir = "D:\\Research\\CNPE\\KY1606_315\\SE\\"
 	load_path = load_dir + load_file
 	prob_path = load_dir + prob_file
+	stat_path = load_dir + stat_file
 
 	# lateral side wall load
 	p_wall = []         # maximum pressure at the lateral side wall, MPa
@@ -279,6 +296,9 @@ if __name__ == '__main__':
 	# upward load
 	Fv = []
 	Hv = []
+
+	# statistic quantities/variables results
+	sv = []
 
 	# Tpye and its associated parameters for the fitting distribution
 	dist_names = ["gamma", "gamma", "gamma", "gamma", "gamma"]
@@ -302,6 +322,10 @@ if __name__ == '__main__':
 
 	# loop for each type of loads
 	for i, data in enumerate([p_wall, impmax, liq_ke, Fv, Hv]):
+		#
+		# calculate the statistic quantities for each load
+		sv.append(stats_var(data))
+
 		# fit the distribution for each load
 		dist_name = dist_names[i]
 		dfit_info.append((dist_name, dist_fit(data, dist_name)))
@@ -318,6 +342,18 @@ if __name__ == '__main__':
 		pf.append(pfail_load(i, Xlim, dfit_info[i]))
 		pf_cont = pf_tot(pf)
 
+
+	# write statistic results to the external file
+	with open(stat_file, 'w') as f:
+		#
+		header = ["xmin", "xmax", "xptp", "xmean", "xvar", "xstd", "xmid"]
+		f.write("%20s"*7 % tuple(header))
+		f.write("\n")
+		for i in range(len(sv)):
+			f.write("%20.5f"*7 % sv[i])
+			f.write("\n")
+
+	# write the failure probabilities to the external file
 	with open(prob_path, 'w') as f:
 		for i in range(len(pf)):
 			f.write("%15.4f\n" % pf[i])
